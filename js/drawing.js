@@ -1,4 +1,4 @@
-const SMOOTHING_FACTOR = 0.7; // Higher value = less smoothing, more instant drawing
+const SMOOTHING_FACTOR = 0.7;
 
 let strokes = [];
 let currentStroke = { points: [], color: '#FFFFFF', width: 5 };
@@ -33,38 +33,15 @@ function undoLastStroke() {
     strokes.pop();
 }
 
-function clearCanvas() {
+// Renamed for clarity, this is the master reset function now
+function clearAllStrokes() {
     strokes = [];
-    currentStroke.points = [];
+    currentStroke = { points: [] };
     lastPoint = null;
-}
-
-/**
- * Translates the coordinates of all saved strokes by a given delta.
- * This is used for the pan/shift canvas feature.
- * @param {number} deltaX - The amount to shift on the X-axis.
- * @param {number} deltaY - The amount to shift on the Y-axis.
- */
-function translateAllStrokes(deltaX, deltaY) {
-    strokes.forEach(stroke => {
-        stroke.points.forEach(point => {
-            point.x += deltaX;
-            point.y += deltaY;
-        });
-    });
-}
-
-function getStrokes() {
-    return strokes;
-}
-
-function setStrokes(newStrokes) {
-    strokes = newStrokes;
 }
 
 function renderStrokes(canvas) {
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -73,10 +50,17 @@ function renderStrokes(canvas) {
     allStrokes.forEach(stroke => {
         if (stroke.points.length < 2) return;
 
-        ctx.strokeStyle = stroke.color;
+        const isEraser = stroke.color === 'ERASER_STROKE';
+
+        // Set the composite operation for the eraser
+        ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+        
+        // For the eraser, the actual color doesn't matter, but we need one.
+        ctx.strokeStyle = isEraser ? '#000000' : stroke.color;
         ctx.lineWidth = stroke.width;
         
         ctx.beginPath();
+        
         const firstPointX = canvas.width - stroke.points[0].x;
         ctx.moveTo(firstPointX, stroke.points[0].y);
 
@@ -87,10 +71,10 @@ function renderStrokes(canvas) {
         }
         ctx.stroke();
     });
+
+    // IMPORTANT: Reset to default after rendering all strokes
+    ctx.globalCompositeOperation = 'source-over';
 }
 
-export { 
-    startStroke, endStroke, addPoint, undoLastStroke, clearCanvas, 
-    renderStrokes, translateAllStrokes, getStrokes, setStrokes 
-};
+export { startStroke, endStroke, addPoint, undoLastStroke, clearAllStrokes, renderStrokes };
 
