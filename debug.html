@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Finger Air Writing</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="title-bar">
+            <h1>Finger Air Writing - DEBUG MODE</h1>
+            <p id="status-message">Initializing...</p>
+        </div>
+
+        <div class="drawing-area">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="drawingCanvas"></canvas>
+            <div id="loading-spinner" class="spinner"></div>
+        </div>
+        
+        <div class="toolbar">
+             <!-- Controls are disabled in debug view to focus on landmarks -->
+             <p>Debug view shows hand landmarks. Drawing is disabled.</p>
+        </div>
+        <a href="index.html" class="debug-link">Back to Main App</a>
+    </div>
+
+    <!-- Set a global flag for debug mode before loading the main script -->
+    <script>
+        window.APP_DEBUG = true;
+    </script>
+    <script type="module" src="js/script.js"></script>
+</body>
+</html>
