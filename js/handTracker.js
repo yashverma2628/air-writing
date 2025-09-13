@@ -1,7 +1,7 @@
 let hands;
 
 async function initialize(videoElement, onResultsCallback) {
-    // Dynamically load the necessary scripts from CDN
+    // Dynamically load the necessary scripts from CDN to ensure they are ready.
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
     await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
 
@@ -12,8 +12,8 @@ async function initialize(videoElement, onResultsCallback) {
     hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
-        minDetectionConfidence: 0.6, // Increased confidence for better gesture stability
-        minTrackingConfidence: 0.6
+        minDetectionConfidence: 0.5, // Lowered for faster initial detection
+        minTrackingConfidence: 0.7  // Kept high for tracking stability
     });
 
     hands.onResults(onResultsCallback);
@@ -29,7 +29,6 @@ async function initialize(videoElement, onResultsCallback) {
     return camera.start();
 }
 
-// Helper function to dynamically load scripts
 function loadScript(src) {
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -42,20 +41,29 @@ function loadScript(src) {
 }
 
 /**
+ * A more robust check to see if a finger is extended.
+ * A finger is "up" if its tip is higher (lower y-value) than its base knuckle (MCP joint).
+ */
+const isFingerUp = (landmarks, tipIndex, mcpIndex) => landmarks[tipIndex].y < landmarks[mcpIndex].y;
+
+/**
  * Analyzes the hand landmarks to detect a specific gesture.
  * @param {Array} landmarks - The array of hand landmarks.
  * @returns {object} An object containing the detected gesture and relevant position.
  */
 function detectGesture(landmarks) {
-    // Helper to check if a finger is extended (tip is higher than the joint below it)
-    const isFingerUp = (tip, pip) => landmarks[tip].y < landmarks[pip].y;
+    const isIndexUp = isFingerUp(landmarks, 8, 5);
+    const isMiddleUp = isFingerUp(landmarks, 12, 9);
+    const isRingUp = isFingerUp(landmarks, 16, 13);
+    const isPinkyUp = isFingerUp(landmarks, 20, 17);
 
-    const isIndexUp = isFingerUp(8, 6);
-    const isMiddleUp = isFingerUp(12, 10);
-    const isRingUp = isFingerUp(16, 14);
-    const isPinkyUp = isFingerUp(20, 18);
+    // FIST gesture: All four fingers are down.
+    if (!isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp) {
+        // Use the wrist as a stable point for panning.
+        return { gesture: 'FIST', position: { x: landmarks[0].x, y: landmarks[0].y } };
+    }
 
-    // Four Fingers Up: ERASE
+    // ERASE gesture: All four fingers are up.
     if (isIndexUp && isMiddleUp && isRingUp && isPinkyUp) {
         // Use the midpoint between index and ring finger for a stable eraser position
         const midX = (landmarks[8].x + landmarks[16].x) / 2;
@@ -63,18 +71,19 @@ function detectGesture(landmarks) {
         return { gesture: 'ERASE', position: { x: midX, y: midY } };
     }
 
-    // Two Fingers Up: PAUSE
+    // PEN UP (Pause) gesture: Index and Middle are up.
     if (isIndexUp && isMiddleUp && !isRingUp && !isPinkyUp) {
-        return { gesture: 'PAUSE' };
+        return { gesture: 'PEN_UP' };
     }
 
-    // One Finger Up: DRAW
+    // DRAW gesture: Only Index finger is up.
     if (isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp) {
         return { gesture: 'DRAW', position: { x: landmarks[8].x, y: landmarks[8].y } };
     }
 
-    // Default: No specific gesture detected
+    // Default: No specific gesture detected, treated as pen up.
     return { gesture: 'NONE' };
 }
 
 export { initialize, detectGesture };
+
