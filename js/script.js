@@ -1,4 +1,4 @@
-import { HandTracker } from './handTracker.js';
+import { HandTracker } from './handtracker.js';
 import { DrawingController } from './drawing.js';
 
 // --- DOM ELEMENTS ---
