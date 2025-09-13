@@ -4,55 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Finger Air Writing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- MediaPipe and Camera Utils will now be loaded dynamically by handTracker.js -->
 </head>
-<body>
-    <div class="container">
-        <div class="title-bar">
-            <h1>Finger Air Writing by yash verma b1 aiml 2025</h1>
-            <p id="status-message">Initializing...</p>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center h-screen overflow-hidden font-sans">
+
+    <div id="container" class="relative w-full max-w-4xl aspect-video shadow-2xl rounded-lg overflow-hidden">
+        <video id="webcam" class="absolute top-0 left-0 w-full h-full object-cover" autoplay playsinline></video>
+        <canvas id="drawingCanvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+        <div id="loading-spinner" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+             <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-white"></div>
         </div>
-
-        <div class="drawing-area">
-            <!-- Webcam video element (hidden but used for input) -->
-            <video id="webcam" autoplay playsinline></video>
-            <!-- Canvas for drawing -->
-            <canvas id="drawingCanvas"></canvas>
-            <div id="loading-spinner" class="spinner"></div>
-        </div>
-
-        <div class="toolbar">
-            <div class="tool-group">
-                <label for="colorPicker">Color</label>
-                <input type="color" id="colorPicker" value="#FFFFFF">
-            </div>
-
-            <div class="tool-group">
-                <label for="strokeWidth">Width</label>
-                <input type="range" id="strokeWidth" min="1" max="50" value="5">
-                <span id="strokeWidthValue">5</span>
-            </div>
-
-            <div class="tool-group actions">
-                <button id="undoBtn" title="Undo Last Stroke">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 12"/></svg>
-                </button>
-                <button id="clearBtn" title="Clear Canvas">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M16 6l-1.5 14H9.5L8 6M10 11v6M14 11v6"></path></svg>
-                </button>
-                <button id="saveBtn" title="Save as PNG">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                </button>
-            </div>
-        </div>
-        <a href="debug.html" class="debug-link">Open Debug View</a>
     </div>
 
-    <!-- Main application script -->
+    <div id="status-message" class="mt-4 text-lg text-gray-300">Initializing... Please wait.</div>
+
+    <div id="toolbar" class="mt-4 flex flex-wrap gap-4 items-center justify-center p-4 bg-gray-800 rounded-lg shadow-lg">
+        <div class="flex items-center gap-2">
+            <label for="colorPicker">Color:</label>
+            <input type="color" id="colorPicker" value="#FFFFFF" class="w-10 h-10 rounded border-2 border-gray-600">
+        </div>
+
+        <div class="flex items-center gap-2">
+            <label for="strokeWidth">Width:</label>
+            <input type="range" id="strokeWidth" min="1" max="50" value="5" class="w-32">
+            <span id="strokeWidthValue" class="w-6 text-center">5</span>
+        </div>
+
+        <button id="undoBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition">Undo</button>
+        <button id="clearBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md transition">Clear</button>
+        <button id="saveBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition">Save Image</button>
+        
+        <div class="border-l border-gray-600 h-8 mx-2"></div>
+
+        <button id="startRecordBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md transition flex items-center gap-2">
+            <span class="w-3 h-3 bg-red-500 rounded-full"></span> Record
+        </button>
+        <button id="stopRecordBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md transition hidden">Stop</button>
+    </div>
+    
     <script type="module" src="js/script.js"></script>
 </body>
 </html>
+
