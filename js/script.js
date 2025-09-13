@@ -1,143 +1,102 @@
-import { HandTracker } from './handtracker.js';
-import { DrawingController } from './drawing.js';
+import * as HandTracker from './handTracker.js';
+import * as Drawing from './drawing.js';
 
-// --- DOM ELEMENTS ---
-const videoElement = document.getElementById('webcam');
-const canvasElement = document.getElementById('drawingCanvas');
-const statusMessage = document.getElementById('status-message');
-const loadingSpinner = document.getElementById('loading-spinner');
-const colorPicker = document.getElementById('colorPicker');
-const strokeWidthSlider = document.getElementById('strokeWidth');
-const strokeWidthValue = document.getElementById('strokeWidthValue');
-const undoBtn = document.getElementById('undoBtn');
-const clearBtn = document.getElementById('clearBtn');
-const saveBtn = document.getElementById('saveBtn');
+document.addEventListener('DOMContentLoaded', () => {
+    const videoElement = document.getElementById('webcam');
+    const drawingCanvas = document.getElementById('drawingCanvas');
+    const colorPicker = document.getElementById('colorPicker');
+    const strokeWidthSlider = document.getElementById('strokeWidth');
+    const strokeWidthValue = document.getElementById('strokeWidthValue');
+    const undoBtn = document.getElementById('undoBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const statusMessage = document.getElementById('status-message');
+    const loadingSpinner = document.getElementById('loading-spinner');
 
-// --- CONSTANTS & STATE ---
-const PINCH_THRESHOLD = 0.08; // Threshold for pinch gesture (normalized distance)
-let isDrawing = false;
-let lastKnownHand = null;
+    let penColor = colorPicker.value;
+    let penWidth = strokeWidthSlider.value;
+    let isDrawing = false;
 
-// --- INITIALIZATION ---
-const drawingController = new DrawingController(canvasElement);
-const handTracker = new HandTracker(videoElement);
-
-/**
- * Main application logic runs here.
- */
-async function main() {
-    setupUI();
-    
-    // Check for debug mode
-    const isDebugMode = window.APP_DEBUG || false;
-    if (isDebugMode) {
-        document.querySelector('.actions')?.remove();
+    function setCanvasSize() {
+        const videoRect = videoElement.getBoundingClientRect();
+        drawingCanvas.width = videoRect.width;
+        drawingCanvas.height = videoRect.height;
     }
 
-    try {
-        statusMessage.textContent = 'Requesting camera access...';
-        await handTracker.initialize(onHandTrackerReady, onHandResults, isDebugMode);
-    } catch (error) {
-        console.error("Initialization failed:", error);
-        statusMessage.textContent = `Error: ${error.message}`;
+    function onHandResults(results) {
         loadingSpinner.style.display = 'none';
-    }
-}
+        statusMessage.textContent = 'Detection active. Pinch to draw!';
 
-/**
- * Sets up event listeners for UI controls.
- */
-function setupUI() {
-    if (colorPicker) {
-        colorPicker.addEventListener('input', (e) => drawingController.changeColor(e.target.value));
-    }
-    if (strokeWidthSlider) {
-        strokeWidthSlider.addEventListener('input', (e) => {
-            const width = parseInt(e.target.value, 10);
-            drawingController.changeWidth(width);
-            strokeWidthValue.textContent = width;
-        });
-    }
-    if (undoBtn) undoBtn.addEventListener('click', () => drawingController.undo());
-    if (clearBtn) clearBtn.addEventListener('click', () => drawingController.clear());
-    if (saveBtn) saveBtn.addEventListener('click', () => drawingController.save());
-}
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const landmarks = results.multiHandLandmarks[0];
+            const fingerTip = landmarks[8]; // Index finger tip
+            const thumbTip = landmarks[4]; // Thumb tip
 
-/**
- * Callback function when the hand tracker is fully initialized.
- */
-function onHandTrackerReady() {
-    loadingSpinner.style.display = 'none';
-    statusMessage.textContent = 'Show your hand to the camera to begin.';
-    drawingController.start();
-}
+            const point = {
+                x: fingerTip.x * drawingCanvas.width,
+                y: fingerTip.y * drawingCanvas.height
+            };
 
-/**
- * Callback function for processing hand tracking results from MediaPipe.
- * @param {object} results - The hand tracking data.
- * @param {boolean} isDebug - Flag for debug mode.
- */
-function onHandResults(results, isDebug) {
-    // Clear the canvas and draw the hand landmarks if in debug mode.
-    if (isDebug) {
-        drawingController.debugDraw(results.multiHandLandmarks);
-        return; // Don't process drawing logic in debug mode
-    }
+            const distance = Math.hypot(fingerTip.x - thumbTip.x, fingerTip.y - thumbTip.y);
+            const isPinched = distance < 0.06;
 
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const handLandmarks = results.multiHandLandmarks[0];
-        lastKnownHand = handLandmarks;
-        statusMessage.textContent = 'Pinch index finger and thumb to draw!';
-        processDrawingGesture(handLandmarks);
-    } else {
-        // If no hand is detected, end the current stroke.
-        if (isDrawing) {
-            drawingController.endStroke();
-            isDrawing = false;
-        }
-        if (lastKnownHand) {
-            lastKnownHand = null;
-            statusMessage.textContent = 'Hand lost. Show hand to resume.';
+            if (isPinched) {
+                if (!isDrawing) {
+                    isDrawing = true;
+                    Drawing.startStroke(point, penColor, penWidth);
+                } else {
+                    Drawing.addPoint(point);
+                }
+            } else {
+                if (isDrawing) {
+                    isDrawing = false;
+                    Drawing.endStroke();
+                }
+            }
+        } else {
+            if (isDrawing) {
+                isDrawing = false;
+                Drawing.endStroke();
+            }
         }
     }
-}
 
-/**
- * Processes the hand landmarks to detect a drawing gesture.
- * @param {Array<object>} handLandmarks - The array of hand landmarks.
- */
-function processDrawingGesture(handLandmarks) {
-    const indexTip = handLandmarks[8]; // Index finger tip
-    const thumbTip = handLandmarks[4]; // Thumb tip
+    function gameLoop() {
+        Drawing.renderStrokes(drawingCanvas);
+        requestAnimationFrame(gameLoop);
+    }
 
-    // Calculate the 3D distance between the index finger tip and thumb tip.
-    const distance = Math.sqrt(
-        Math.pow(indexTip.x - thumbTip.x, 2) +
-        Math.pow(indexTip.y - thumbTip.y, 2) +
-        Math.pow(indexTip.z - thumbTip.z, 2)
-    );
+    // --- Event Listeners ---
+    colorPicker.addEventListener('input', (e) => penColor = e.target.value);
+    strokeWidthSlider.addEventListener('input', (e) => {
+        penWidth = e.target.value;
+        strokeWidthValue.textContent = penWidth;
+    });
+    undoBtn.addEventListener('click', Drawing.undoLastStroke);
+    clearBtn.addEventListener('click', Drawing.clearCanvas);
+    saveBtn.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'air-drawing.png';
+        link.href = drawingCanvas.toDataURL('image/png');
+        link.click();
+    });
 
-    // Get pixel coordinates for the index finger tip, flipping X for mirror effect.
-    const canvasX = (1 - indexTip.x) * canvasElement.width;
-    const canvasY = indexTip.y * canvasElement.height;
-    
-    // Check if the pinch gesture is active.
-    if (distance < PINCH_THRESHOLD) {
-        if (!isDrawing) {
-            // Started drawing
-            isDrawing = true;
-            drawingController.startStroke();
-        }
-        // Add the current point to the stroke.
-        drawingController.addPoint(canvasX, canvasY);
-    } else {
-        if (isDrawing) {
-            // Stopped drawing
-            isDrawing = false;
-            drawingController.endStroke();
+    window.addEventListener('resize', setCanvasSize);
+
+    // --- Initialization ---
+    async function main() {
+        statusMessage.textContent = 'Initializing camera...';
+        try {
+            await HandTracker.initialize(videoElement, onHandResults);
+            setCanvasSize();
+            gameLoop();
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            statusMessage.textContent = 'Error: Could not access webcam. Please grant permission and refresh.';
+            loadingSpinner.style.display = 'none';
         }
     }
-}
 
-// Start the application.
-main();
+    main();
+});
+
