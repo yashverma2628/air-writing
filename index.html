@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Finger Air Writing</title>
+    <title>Real-Time Finger Air Writing with Gemini</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/style.css">
     <!-- MediaPipe and Camera Utils will now be loaded dynamically by handTracker.js -->
@@ -16,6 +16,7 @@
         <div id="loading-spinner" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
              <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-white"></div>
         </div>
+        <div id="gemini-description" class="absolute bottom-4 left-4 right-4 p-3 bg-black bg-opacity-60 text-center text-lg rounded-lg backdrop-blur-sm transition-opacity duration-500 opacity-0"></div>
     </div>
 
     <div id="status-message" class="mt-4 text-lg text-gray-300">Initializing... Please wait.</div>
@@ -36,6 +37,13 @@
         <button id="clearBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md transition">Clear</button>
         <button id="saveBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition">Save Image</button>
         
+        <div class="border-l border-gray-600 h-8 mx-2"></div>
+        
+        <!-- This is the button that was missing -->
+        <button id="describeBtn" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold rounded-md transition flex items-center gap-2">
+            ✨ Describe & Narrate
+        </button>
+
         <div class="border-l border-gray-600 h-8 mx-2"></div>
 
         <button id="startRecordBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md transition flex items-center gap-2">
