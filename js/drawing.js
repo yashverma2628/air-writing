@@ -1,4 +1,5 @@
-const SMOOTHING_FACTOR = 0.3;
+// A higher factor means less smoothing and more "instant" drawing.
+const SMOOTHING_FACTOR = 0.7;
 
 let strokes = [];
 let currentStroke = { points: [], color: '#FFFFFF', width: 5 };
@@ -13,6 +14,7 @@ function endStroke() {
     if (currentStroke.points.length > 1) {
         strokes.push(currentStroke);
     }
+    // Reset but keep color/width settings
     currentStroke = { points: [], color: currentStroke.color, width: currentStroke.width };
     lastPoint = null;
 }
@@ -57,14 +59,12 @@ function renderStrokes(canvas) {
         
         ctx.beginPath();
         
-        // --- THIS IS THE CRITICAL CHANGE ---
-        // We flip the X coordinate to match the mirrored video
+        // Flip the X coordinate to match the mirrored video
         const firstPointX = canvas.width - stroke.points[0].x;
         ctx.moveTo(firstPointX, stroke.points[0].y);
 
         for (let i = 1; i < stroke.points.length; i++) {
             const point = stroke.points[i];
-            // Flip the X coordinate for every point
             const mirroredX = canvas.width - point.x;
             ctx.lineTo(mirroredX, point.y);
         }
