@@ -1,35 +1,23 @@
-:root {
-    --bg-color: #1a1a1a;
-    --surface-color: #2c2c2c;
-    --primary-color: #007bff;
-    --text-color: #f0f0f0;
-    --border-color: #444;
-}
-
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    overflow: hidden;
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .container {
     width: 100%;
-    max-width: 1200px;
-    padding: 1rem;
+    max-width: 1000px;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .title-bar {
@@ -37,24 +25,28 @@ body {
 }
 
 h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: 600;
+    color: #fff;
+    margin: 0;
 }
 
 #status-message {
-    color: #aaa;
+    font-size: 1rem;
+    color: #888;
     min-height: 1.2em;
 }
 
 .drawing-area {
     position: relative;
     width: 100%;
-    /* Maintain 16:9 aspect ratio */
-    padding-top: 56.25%; 
-    background-color: #000;
-    border-radius: 8px;
+    max-width: 960px;
+    aspect-ratio: 16 / 9;
+    margin: auto;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    background-color: #000;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 #webcam {
@@ -64,10 +56,8 @@ h1 {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Flip the camera horizontally for a mirror-like effect */
+    /* This creates the mirror effect */
     transform: scaleX(-1);
-    /* Hide the video element itself, we only need it as an input */
-    visibility: hidden;
 }
 
 #drawingCanvas {
@@ -76,17 +66,42 @@ h1 {
     left: 0;
     width: 100%;
     height: 100%;
+    /* The canvas itself is transparent */
+    background-color: transparent;
 }
 
+.spinner {
+    border: 5px solid rgba(255, 255, 255, 0.2);
+    border-top: 5px solid #fff;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+
 .toolbar {
-    background-color: var(--surface-color);
-    padding: 1rem;
-    border-radius: 8px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
     flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
     gap: 1.5rem;
+    background-color: #2a2a2a;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 960px;
+    box-sizing: border-box;
 }
 
 .tool-group {
@@ -95,48 +110,56 @@ h1 {
     gap: 0.75rem;
 }
 
-.tool-group label {
+label {
     font-weight: 500;
+    color: #aaa;
 }
 
-.tool-group input[type="color"] {
-    width: 40px;
-    height: 40px;
+input[type="color"] {
+    -webkit-appearance: none;
+    width: 36px;
+    height: 36px;
     border: none;
     padding: 0;
     border-radius: 50%;
     cursor: pointer;
     background-color: transparent;
 }
-.tool-group input[type="color"]::-webkit-color-swatch-wrapper {
+input[type="color"]::-webkit-color-swatch-wrapper {
     padding: 0;
 }
-.tool-group input[type="color"]::-webkit-color-swatch {
-    border: 2px solid var(--border-color);
+input[type="color"]::-webkit-color-swatch {
+    border: 2px solid #555;
     border-radius: 50%;
 }
 
-
-.tool-group input[type="range"] {
+input[type="range"] {
     cursor: pointer;
 }
 
 #strokeWidthValue {
-    min-width: 20px;
-    text-align: center;
+    min-width: 2ch;
+    text-align: right;
+    font-weight: 500;
+    color: #fff;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 .actions button {
     background-color: #3a3a3a;
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    padding: 0.5rem;
-    border-radius: 6px;
+    border: none;
+    color: #e0e0e0;
+    padding: 0.6rem;
+    border-radius: 8px;
     cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .actions button:hover {
@@ -147,28 +170,14 @@ h1 {
     transform: scale(0.95);
 }
 
-.spinner {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 60px;
-    height: 60px;
-    border: 6px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    transform: translate(-50%, -50%);
-}
-
-@keyframes spin {
-    to {
-        transform: translate(-50%, -50%) rotate(360deg);
-    }
-}
-
 .debug-link {
-    text-align: center;
-    color: #888;
-    font-size: 0.9rem;
+    color: #555;
+    text-decoration: none;
     margin-top: 1rem;
+    font-size: 0.8rem;
+    transition: color 0.2s;
 }
+.debug-link:hover {
+    color: #888;
+}
+
