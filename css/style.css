@@ -1,0 +1,174 @@
+:root {
+    --bg-color: #1a1a1a;
+    --surface-color: #2c2c2c;
+    --primary-color: #007bff;
+    --text-color: #f0f0f0;
+    --border-color: #444;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.title-bar {
+    text-align: center;
+}
+
+h1 {
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+#status-message {
+    color: #aaa;
+    min-height: 1.2em;
+}
+
+.drawing-area {
+    position: relative;
+    width: 100%;
+    /* Maintain 16:9 aspect ratio */
+    padding-top: 56.25%; 
+    background-color: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+#webcam {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Flip the camera horizontally for a mirror-like effect */
+    transform: scaleX(-1);
+    /* Hide the video element itself, we only need it as an input */
+    visibility: hidden;
+}
+
+#drawingCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.toolbar {
+    background-color: var(--surface-color);
+    padding: 1rem;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tool-group label {
+    font-weight: 500;
+}
+
+.tool-group input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: none;
+    padding: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    background-color: transparent;
+}
+.tool-group input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+.tool-group input[type="color"]::-webkit-color-swatch {
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+}
+
+
+.tool-group input[type="range"] {
+    cursor: pointer;
+}
+
+#strokeWidthValue {
+    min-width: 20px;
+    text-align: center;
+}
+
+.actions button {
+    background-color: #3a3a3a;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.actions button:hover {
+    background-color: #4a4a4a;
+}
+
+.actions button:active {
+    transform: scale(0.95);
+}
+
+.spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    border: 6px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+.debug-link {
+    text-align: center;
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
