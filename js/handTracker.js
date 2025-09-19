@@ -58,7 +58,7 @@ function detectGesture(landmarks) {
     const isPinkyUp = isFingerUp(landmarks, 20, 17);
 
     // ROCK ON gesture (🤘): Index and Pinky are up, Middle and Ring are down - for clearing
-    if (isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp) {
+    if (!isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp) {
         return { gesture: 'ROCK_ON' };
     }
 
