@@ -20,12 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('saveBtn'); // Assuming this exists from previous steps
     const loadBtn = document.getElementById('loadBtn'); // Assuming this exists
 
-    // --- State Management ---
+   // --- State Management ---
     let penColor = colorPicker.value;
     let penWidth = strokeWidthSlider.value;
     let currentMode = 'PEN_UP'; 
     let lastMode = 'PEN_UP';
-    // We remove panStartPosition and canvasOffset as they are no longer needed for the fist gesture
+    let panStartPosition = null; // <<< This line is the fix
+    let canvasOffset = { x: 0, y: 0 };
     let globalHandLandmarks = null;
     
     function setCanvasSize() {
