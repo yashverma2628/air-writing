@@ -1,6 +1,5 @@
 import * as HandTracker from './handTracker.js';
 import * as Drawing from './drawing.js';
-
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const videoElement = document.getElementById('webcam');
@@ -10,25 +9,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMessage = document.getElementById('status-message');
     const loadingSpinner = document.getElementById('loading-spinner');
     const geminiDescription = document.getElementById('gemini-description');
-    
     // --- Controls ---
     const colorPicker = document.getElementById('colorPicker');
     const strokeWidthSlider = document.getElementById('strokeWidth');
     const strokeWidthValue = document.getElementById('strokeWidthValue');
     const undoBtn = document.getElementById('undoBtn');
     const clearBtn = document.getElementById('clearBtn');
-    const saveBtn = document.getElementById('saveBtn'); // Assuming this exists from previous steps
-    const loadBtn = document.getElementById('loadBtn'); // Assuming this exists
+    const saveBtn = document.getElementById('saveBtn');
+    const startRecordBtn = document.getElementById('startRecordBtn');
+    const stopRecordBtn = document.getElementById('stopRecordBtn');
+    const describeBtn = document.getElementById('describeBtn');
 
-   // --- State Management ---
+    // --- State Management ---
+    // This entire block is crucial.
     let penColor = colorPicker.value;
     let penWidth = strokeWidthSlider.value;
     let currentMode = 'PEN_UP'; 
     let lastMode = 'PEN_UP';
-    let panStartPosition = null; // <<< This line is the fix
-    let canvasOffset = { x: 0, y: 0 };
+    let panStartPosition = null; // Solves the first error
+    let canvasOffset = { x: 0, y: 0 }; // Solves the second error
     let globalHandLandmarks = null;
     
+    // --- Recording State ---
+    let mediaRecorder;
+    let recordedChunks = [];
+    
+    // ... the rest of your code (setCanvasSize function, etc.) follows here ...
     function setCanvasSize() {
         const videoRect = videoElement.getBoundingClientRect();
         drawingCanvas.width = videoRect.width;
