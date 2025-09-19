@@ -70,6 +70,11 @@ function detectGesture(landmarks) {
         const midY = (landmarks[8].y + landmarks[16].y) / 2;
         return { gesture: 'ERASE', position: { x: midX, y: midY } };
     }
+    
+    // CLEAR gesture (🤘 "Rock On"): Index and Pinky are up.
+    if (isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp) {
+        return { gesture: 'CLEAR' };
+    }
 
     // PEN UP (Pause) gesture: Index and Middle are up.
     if (isIndexUp && isMiddleUp && !isRingUp && !isPinkyUp) {
@@ -84,5 +89,4 @@ function detectGesture(landmarks) {
     // Default: No specific gesture detected, treated as pen up.
     return { gesture: 'NONE' };
 }
-
 export { initialize, detectGesture };
