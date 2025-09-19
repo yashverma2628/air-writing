@@ -57,7 +57,12 @@ function detectGesture(landmarks) {
     const isRingUp = isFingerUp(landmarks, 16, 13);
     const isPinkyUp = isFingerUp(landmarks, 20, 17);
 
-    // FIST gesture: All four fingers are down.
+    // ROCK ON gesture (🤘): Index and Pinky are up, Middle and Ring are down - for clearing
+    if (isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp) {
+        return { gesture: 'ROCK_ON' };
+    }
+
+    // FIST gesture: All four fingers are down - for panning/moving the drawing
     if (!isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp) {
         // Use the wrist as a stable point for panning.
         return { gesture: 'FIST', position: { x: landmarks[0].x, y: landmarks[0].y } };
@@ -70,13 +75,8 @@ function detectGesture(landmarks) {
         const midY = (landmarks[8].y + landmarks[16].y) / 2;
         return { gesture: 'ERASE', position: { x: midX, y: midY } };
     }
-    
-    // CLEAR gesture (🤘 "Rock On"): Index and Pinky are up.
-    if (isIndexUp && !isMiddleUp && !isRingUp && isPinkyUp) {
-        return { gesture: 'CLEAR' };
-    }
 
-    // PEN UP (Pause) gesture: Index and Middle are up.
+    // PEN UP (Pause) gesture: Index and Middle are up, Ring and Pinky are down
     if (isIndexUp && isMiddleUp && !isRingUp && !isPinkyUp) {
         return { gesture: 'PEN_UP' };
     }
@@ -89,4 +89,5 @@ function detectGesture(landmarks) {
     // Default: No specific gesture detected, treated as pen up.
     return { gesture: 'NONE' };
 }
+
 export { initialize, detectGesture };
