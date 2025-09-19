@@ -1,5 +1,6 @@
 import * as HandTracker from './handTracker.js';
 import * as Drawing from './drawing.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const videoElement = document.getElementById('webcam');
@@ -21,20 +22,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const describeBtn = document.getElementById('describeBtn');
 
     // --- State Management ---
-    // This entire block is crucial.
     let penColor = colorPicker.value;
     let penWidth = strokeWidthSlider.value;
     let currentMode = 'PEN_UP'; 
     let lastMode = 'PEN_UP';
-    let panStartPosition = null; // Solves the first error
-    let canvasOffset = { x: 0, y: 0 }; // Solves the second error
+    let panStartPosition = null;
+    let canvasOffset = { x: 0, y: 0 };
+    let permanentOffset = { x: 0, y: 0 }; // Permanent offset that persists after fist is released
+    let temporaryOffset = { x: 0, y: 0 }; // Temporary offset while dragging with fist
     let globalHandLandmarks = null;
     
     // --- Recording State ---
     let mediaRecorder;
     let recordedChunks = [];
     
-    // ... the rest of your code (setCanvasSize function, etc.) follows here ...
     function setCanvasSize() {
         const videoRect = videoElement.getBoundingClientRect();
         drawingCanvas.width = videoRect.width;
@@ -46,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (loadingSpinner.style.display !== 'none') {
             loadingSpinner.style.display = 'none';
             toolbar.style.visibility = 'visible';
-            statusMessage.textContent = '1 finger to draw, 2 to lift, 4 to erase, fist to clear.';
+            statusMessage.textContent = '1 finger: draw | 2 fingers: lift pen | 4 fingers: erase | Fist: move | 🤘: clear';
         }
 
         if (globalHandLandmarks) {
@@ -62,22 +63,24 @@ document.addEventListener('DOMContentLoaded', () => {
             lastMode = currentMode;
         } else {
             if (lastMode === 'DRAW' || lastMode === 'ERASE') Drawing.endStroke();
+            if (lastMode === 'FIST') handlePanEnd(); // Properly end pan if hand is lost
             currentMode = 'PEN_UP';
             lastMode = 'PEN_UP';
         }
     }
 
-    // This function is no longer needed as panning is removed.
-    // function handlePanEnd() { ... }
-
     function handlePanEnd() {
         if (!panStartPosition) return;
-        // Pan gesture is over. Reset panning state but DO NOT clear the drawing.
+        // When fist is released, make the temporary offset permanent
+        permanentOffset.x += temporaryOffset.x;
+        permanentOffset.y += temporaryOffset.y;
+        temporaryOffset = { x: 0, y: 0 };
         panStartPosition = null;
-        canvasOffset = { x: 0, y: 0 };
+        // Update the combined offset
+        canvasOffset = { x: permanentOffset.x, y: permanentOffset.y };
     }
 
-function handleGesture(position) {
+    function handleGesture(position) {
          switch (currentMode) {
             case 'DRAW':
             case 'ERASE':
@@ -85,26 +88,51 @@ function handleGesture(position) {
                 const strokeWidth = currentMode === 'ERASE' ? penWidth * 2 : penWidth; // Make eraser thicker
                 if (lastMode !== currentMode) {
                     Drawing.endStroke(); // End previous stroke if mode changed
-                    if(position) Drawing.startStroke(position, strokeColor, strokeWidth);
+                    if(position) {
+                        // Adjust position based on permanent offset when starting a new stroke
+                        const adjustedPosition = {
+                            x: position.x - permanentOffset.x,
+                            y: position.y - permanentOffset.y
+                        };
+                        Drawing.startStroke(adjustedPosition, strokeColor, strokeWidth);
+                    }
                 } else if (position) {
-                    Drawing.addPoint(position);
+                    // Adjust position based on permanent offset when adding points
+                    const adjustedPosition = {
+                        x: position.x - permanentOffset.x,
+                        y: position.y - permanentOffset.y
+                    };
+                    Drawing.addPoint(adjustedPosition);
                 }
                 break;
             
             case 'FIST':
-                // Add a null check for position to prevent crash
+                // Fist is for panning/moving the drawing
                 if (lastMode !== 'FIST' && position) {
                     panStartPosition = position;
+                    temporaryOffset = { x: 0, y: 0 };
                 } else if (panStartPosition && position) {
-                    canvasOffset.x = position.x - panStartPosition.x;
-                    canvasOffset.y = position.y - panStartPosition.y;
+                    temporaryOffset.x = position.x - panStartPosition.x;
+                    temporaryOffset.y = position.y - panStartPosition.y;
+                    // Update the combined offset for rendering
+                    canvasOffset.x = permanentOffset.x + temporaryOffset.x;
+                    canvasOffset.y = permanentOffset.y + temporaryOffset.y;
                 }
                 break;
-            
-            // --- NEW GESTURE HANDLER ---
-            case 'CLEAR':
-                Drawing.clearAllStrokes();
-                canvasOffset = { x: 0, y: 0 }; 
+
+            case 'ROCK_ON':
+                // Rock on gesture (🤘) clears the screen and resets offsets
+                if (lastMode !== 'ROCK_ON') {
+                    Drawing.clearAllStrokes();
+                    permanentOffset = { x: 0, y: 0 };
+                    temporaryOffset = { x: 0, y: 0 };
+                    canvasOffset = { x: 0, y: 0 };
+                    panStartPosition = null;
+                    statusMessage.textContent = 'Canvas cleared! 🤘';
+                    setTimeout(() => {
+                        statusMessage.textContent = '1 finger: draw | 2 fingers: lift pen | 4 fingers: erase | Fist: move | 🤘: clear';
+                    }, 2000);
+                }
                 break;
 
             case 'PEN_UP':
@@ -119,14 +147,104 @@ function handleGesture(position) {
     }
 
     function gameLoop() {
-        // Since panning is removed, we don't need to translate the canvas anymore
-        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height); 
+        ctx.setTransform(1, 0, 0, 1, 0, 0); 
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height); // Clear before drawing
+        
+        ctx.translate(canvasOffset.x, canvasOffset.y);
         Drawing.renderStrokes(drawingCanvas); 
+        
         requestAnimationFrame(gameLoop);
     }
     
-    // (The rest of your script.js file remains the same)
-    // ... Gemini functions, event listeners, main function, etc.
+    // --- Gemini API Functions (Implementations are unchanged) ---
+    async function handleDescribeAndNarrate() {
+        statusMessage.textContent = 'Analyzing your masterpiece...';
+        loadingSpinner.style.display = 'flex';
+        describeBtn.disabled = true;
+
+        try {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = drawingCanvas.width;
+            tempCanvas.height = drawingCanvas.height;
+            Drawing.renderStrokes(tempCanvas);
+            const imageData = tempCanvas.toDataURL('image/png').split(',')[1];
+            
+            const description = await callGeminiVision(imageData);
+            
+            geminiDescription.textContent = description;
+            geminiDescription.style.opacity = '1';
+            statusMessage.textContent = 'Generating audio...';
+
+            const audioData = await callGeminiTTS(description);
+            if (audioData) {
+                await playPcmAudio(audioData.audioData, audioData.sampleRate);
+            }
+            statusMessage.textContent = 'Done! Try another drawing.';
+
+        } catch (error) {
+            console.error("Gemini API Error:", error);
+            statusMessage.textContent = "Sorry, I couldn't process that. Please try again.";
+            geminiDescription.textContent = '';
+        } finally {
+            loadingSpinner.style.display = 'none';
+            describeBtn.disabled = false;
+            setTimeout(() => { geminiDescription.style.opacity = '0'; }, 6000);
+        }
+    }
+    
+    async function callGeminiVision(base64ImageData) {
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        const payload = { contents: [{ parts: [ { text: "Describe this drawing in a creative, short, single sentence." }, { inlineData: { mimeType: "image/png", data: base64ImageData } } ] }] };
+        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        return result.candidates[0].content.parts[0].text;
+    }
+
+    async function callGeminiTTS(textToSpeak) {
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+        const payload = { contents: [{ parts: [{ text: textToSpeak }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } }, model: "gemini-2.5-flash-preview-tts" };
+        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        const part = result?.candidates?.[0]?.content?.parts?.[0];
+        const audioData = part?.inlineData?.data;
+        const mimeType = part?.inlineData?.mimeType;
+        if (audioData && mimeType && mimeType.startsWith("audio/")) {
+            const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+            return { audioData, sampleRate };
+        }
+        return null;
+    }
+
+    function playPcmAudio(base64Data, sampleRate) { /* Unchanged */
+        return new Promise((resolve) => {
+            const pcmData = atob(base64Data).split('').map(c => c.charCodeAt(0));
+            const byteCharacters = new Uint8Array(pcmData);
+            const pcm16 = new Int16Array(byteCharacters.buffer);
+            const wavBlob = pcmToWav(pcm16, sampleRate);
+            const audioUrl = URL.createObjectURL(wavBlob);
+            const audio = new Audio(audioUrl);
+            audio.onended = () => { URL.revokeObjectURL(audioUrl); resolve(); };
+            audio.play();
+        });
+    }
+
+    function pcmToWav(pcmData, sampleRate) { /* Unchanged */
+        const numChannels = 1, bitsPerSample = 16, blockAlign = (numChannels * bitsPerSample) / 8, byteRate = sampleRate * blockAlign, dataSize = pcmData.length * 2, buffer = new ArrayBuffer(44 + dataSize), view = new DataView(buffer);
+        writeString(view, 0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); writeString(view, 8, 'WAVE'); writeString(view, 12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true); view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true); view.setUint16(34, bitsPerSample, true); writeString(view, 36, 'data'); view.setUint32(40, dataSize, true);
+        for (let i = 0; i < pcmData.length; i++) { view.setInt16(44 + i * 2, pcmData[i], true); }
+        return new Blob([view], { type: 'audio/wav' });
+    }
+    
+    function writeString(view, offset, string) { /* Unchanged */
+        for (let i = 0; i < string.length; i++) { view.setUint8(offset + i, string.charCodeAt(i)); }
+    }
+    
+    async function startRecording() { /* Unchanged - implement if needed */ }
+    function stopRecording() { /* Unchanged - implement if needed */ }
 
     async function main() {
         try {
@@ -146,9 +264,19 @@ function handleGesture(position) {
     undoBtn.addEventListener('click', Drawing.undoLastStroke);
     clearBtn.addEventListener('click', () => {
         Drawing.clearAllStrokes();
+        permanentOffset = { x: 0, y: 0 };
+        temporaryOffset = { x: 0, y: 0 };
+        canvasOffset = { x: 0, y: 0 };
     });
-    // Add other button listeners if they exist (save, load, etc.)
-    
+    saveBtn.addEventListener('click', () => {
+        const link = document.createElement('a'); link.download = 'air-drawing.png';
+        ctx.globalCompositeOperation = 'destination-over'; ctx.drawImage(videoElement, 0, 0, drawingCanvas.width, drawingCanvas.height);
+        link.href = drawingCanvas.toDataURL('image/png'); link.click();
+        ctx.globalCompositeOperation = 'source-over';
+    });
+    startRecordBtn.addEventListener('click', startRecording);
+    stopRecordBtn.addEventListener('click', stopRecording);
+    describeBtn.addEventListener('click', handleDescribeAndNarrate);
     window.addEventListener('resize', setCanvasSize);
 
     main();
