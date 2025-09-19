@@ -63,7 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // This function is no longer needed as panning is removed.
     // function handlePanEnd() { ... }
 
-    function handleGesture(position) {
+    function handlePanEnd() {
+        if (!panStartPosition) return;
+        // Pan gesture is over. Reset panning state but DO NOT clear the drawing.
+        panStartPosition = null;
+        canvasOffset = { x: 0, y: 0 };
+    }
+
+function handleGesture(position) {
          switch (currentMode) {
             case 'DRAW':
             case 'ERASE':
@@ -77,25 +84,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 break;
             
-            // --- UPDATED FIST GESTURE LOGIC ---
             case 'FIST':
-                // Check if the mode just changed to FIST to avoid clearing repeatedly
-                if (lastMode !== 'FIST') {
-                    Drawing.clearAllStrokes();
-                    statusMessage.textContent = 'Canvas Cleared!';
-                    // Optional: fade the message out after a bit
-                    setTimeout(() => {
-                        statusMessage.textContent = '1 finger to draw, 2 to lift, 4 to erase, fist to clear.';
-                    }, 1500);
+                // Add a null check for position to prevent crash
+                if (lastMode !== 'FIST' && position) {
+                    panStartPosition = position;
+                } else if (panStartPosition && position) {
+                    canvasOffset.x = position.x - panStartPosition.x;
+                    canvasOffset.y = position.y - panStartPosition.y;
                 }
+                break;
+            
+            // --- NEW GESTURE HANDLER ---
+            case 'CLEAR':
+                Drawing.clearAllStrokes();
+                canvasOffset = { x: 0, y: 0 }; 
                 break;
 
             case 'PEN_UP':
             case 'NONE':
                 if (lastMode === 'DRAW' || lastMode === 'ERASE') {
                     Drawing.endStroke();
+                } else if (lastMode === 'FIST') {
+                   handlePanEnd();
                 }
-                // No need to handle pan end anymore
                 break;
         }
     }
